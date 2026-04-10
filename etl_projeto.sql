@@ -4,7 +4,8 @@ WITH tb_transacoes AS (
         IdCliente,
         QtdePontos,
         DATETIME(SUBSTR(DtCriacao, 1, 19)) AS dtCriacao,
-        JULIANDAY('NOW') - JULIANDAY(SUBSTR(DtCriacao, 1, 10)) AS diffDate
+        JULIANDAY('NOW') - JULIANDAY(SUBSTR(DtCriacao, 1, 10)) AS diffDate,
+        CAST(STRFTIME('%H', SUBSTR(dtCriacao, 1, 19)) AS INTEGER) AS dtHora
     FROM transacoes 
 ),
 tb_cliente AS (
@@ -77,7 +78,42 @@ SELECT
     ROW_NUMBER() OVER (PARTITION BY idCliente ORDER BY qtde7 DESC) AS rn7
 FROM tb_cliente_produto
 ),
-tb_join AS (
+tb_cliente_dia AS (
+SELECT 
+    IdCliente,
+    STRFTIME('%w',DtCriacao) AS dtDia,
+    COUNT(*) AS qtdeTransacao
+FROM tb_transacoes 
+WHERE diffDate <= 28 
+GROUP BY idCliente, dtDia
+),
+tb_cliente_dia_rn AS (
+SELECT 
+    * ,
+    ROW_NUMBER() OVER(PARTITION BY IdCliente ORDER BY qtdeTransacao DESC) AS rnDia
+FROM tb_cliente_dia
+),
+tb_cliente_periodo AS (
+SELECT 
+    IdCliente,
+    CASE 
+        WHEN dtHora BETWEEN 7 AND 12 THEN 'Manhã'
+        WHEN dtHora BETWEEN 13 AND 18 THEN 'Tarde'
+        WHEN dtHora BETWEEN 19 AND 23 THEN 'Noite'
+        ELSE 'Madrugada'
+        END AS periodo,
+    COUNT(*) AS qtdeTransacao  
+ FROM tb_transacoes
+ WHERE diffDate <= 28 
+ GROUP BY 1, 2 
+ ),
+tb_cliente_perido_rn AS (
+ SELECT 
+    *,
+    ROW_NUMBER() OVER(PARTITION BY IdCliente ORDER BY qtdeTransacao DESC) AS rnPeriodo
+ FROM tb_cliente_periodo
+ ),
+ tb_join AS (
 SELECT 
     t1.*,
     t2.idadeBase,
@@ -85,7 +121,10 @@ SELECT
     t4.DescNomeProduto AS produto56,
     t5.DescNomeProduto AS produto28,
     t6.DescNomeProduto AS produto14,
-    t7.DescNomeProduto AS produto7
+    t7.DescNomeProduto AS produto7,
+    COALESCE(t8.dtDia, -1) AS dtDia,
+    COALESCE(t9.periodo, 'Sem informação') AS periodo
+
 FROM tb_sumario_transacoes AS t1 
 
 LEFT JOIN tb_cliente AS t2 
@@ -110,7 +149,13 @@ AND t6.rn14 = 1
 LEFT JOIN  tb_cliente_produto_rn AS t7
 ON t1.idCliente = t7.idCliente
 AND t7.rn7 = 1 
+
+LEFT JOIN tb_cliente_dia_rn AS t8
+ON t1.IdCliente = t8.idCliente
+AND t8.rnDia = 1
+
+LEFT JOIN tb_cliente_perido_rn AS t9
+ON t1.idCliente = t9.idCliente
+AND t9.rnPeriodo = 1
 )
-SELECT * 
-FROM tb_join
-ORDER BY IdCliente
+SELECT * FROM tb_join 
