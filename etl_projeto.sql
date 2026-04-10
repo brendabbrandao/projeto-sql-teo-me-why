@@ -32,25 +32,17 @@ SELECT
     SUM(CASE WHEN qtdePontos > 0 AND diffDate <= 56  THEN qtdePontos ELSE 0 END) AS qtdePontosPos56,
     SUM(CASE WHEN qtdePontos > 0 AND diffDate <= 28 THEN qtdePontos ELSE 0 END) AS qtdePontosPos28,
     SUM(CASE WHEN qtdePontos > 0 AND diffDate <= 14 THEN qtdePontos ELSE 0 END) AS qtdePontosPos14,
-    SUM(CASE WHEN qtdePontos > 0 AND diffDate <= 8 THEN qtdePontos ELSE 0 END) AS qtdePontosPos7,
+    SUM(CASE WHEN qtdePontos > 0 AND diffDate <= 7 THEN qtdePontos ELSE 0 END) AS qtdePontosPos7,
     
     SUM(CASE WHEN qtdePontos < 0 THEN qtdePontos ELSE 0 END) AS qtdePontosNegVida,
     SUM(CASE WHEN qtdePontos < 0 AND diffDate <= 56  THEN qtdePontos ELSE 0 END) AS qtdePontosNeg56,
     SUM(CASE WHEN qtdePontos < 0 AND diffDate <= 28 THEN qtdePontos ELSE 0 END) AS qtdePontosNeg28,
     SUM(CASE WHEN qtdePontos < 0 AND diffDate <= 14 THEN qtdePontos ELSE 0 END) AS qtdePontosNeg14,
-    SUM(CASE WHEN qtdePontos < 0 AND diffDate <= 8 THEN qtdePontos ELSE 0 END) AS qtdePontosNeg7
+    SUM(CASE WHEN qtdePontos < 0 AND diffDate <= 7 THEN qtdePontos ELSE 0 END) AS qtdePontosNeg7
 
  FROM tb_transacoes 
  GROUP BY IdCliente
  ),
-tb_join AS (
-SELECT 
-    t1.*,
-    t2.idadeBase
-FROM tb_sumario_transacoes AS t1 
-LEFT JOIN tb_cliente AS t2 
-ON t1.idCliente = t2.idCliente
-),
 tb_transacao_produto AS (
 SELECT  
     t1.*,
@@ -74,4 +66,51 @@ SELECT
     COUNT(CASE WHEN  diffDate <= 7 THEN IdTransacao END) AS qtde7   
 FROM tb_transacao_produto
 GROUP BY IdCliente, DescNomeProduto 
+),
+tb_cliente_produto_rn AS (
+SELECT 
+    *,
+    ROW_NUMBER() OVER (PARTITION BY idCliente ORDER BY qtdeVida DESC) AS rnVida,
+    ROW_NUMBER() OVER (PARTITION BY idCliente ORDER BY qtde56 DESC) AS rn56,
+    ROW_NUMBER() OVER (PARTITION BY idCliente ORDER BY qtde28 DESC) AS rn28,
+    ROW_NUMBER() OVER (PARTITION BY idCliente ORDER BY qtde14 DESC) AS rn14,
+    ROW_NUMBER() OVER (PARTITION BY idCliente ORDER BY qtde7 DESC) AS rn7
+FROM tb_cliente_produto
+),
+tb_join AS (
+SELECT 
+    t1.*,
+    t2.idadeBase,
+    t3.DescNomeProduto AS produtoVida,
+    t4.DescNomeProduto AS produto56,
+    t5.DescNomeProduto AS produto28,
+    t6.DescNomeProduto AS produto14,
+    t7.DescNomeProduto AS produto7
+FROM tb_sumario_transacoes AS t1 
+
+LEFT JOIN tb_cliente AS t2 
+ON t1.idCliente = t2.idCliente
+
+LEFT JOIN tb_cliente_produto_rn AS t3
+ON t1.idCliente = t3.idCliente
+AND t3.rnVida = 1
+
+LEFT JOIN tb_cliente_produto_rn AS t4
+ON t1.idCliente = t4.idCliente
+AND t4.rn56 = 1 
+
+LEFT JOIN  tb_cliente_produto_rn AS t5
+ON t1.idCliente = t5.idCliente
+AND t5.rn28 = 1 
+
+LEFT JOIN  tb_cliente_produto_rn AS t6
+ON t1.idCliente = t6.idCliente
+AND t6.rn14 = 1 
+
+LEFT JOIN  tb_cliente_produto_rn AS t7
+ON t1.idCliente = t7.idCliente
+AND t7.rn7 = 1 
 )
+SELECT * 
+FROM tb_join
+ORDER BY IdCliente
