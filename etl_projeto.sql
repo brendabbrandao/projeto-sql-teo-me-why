@@ -1,18 +1,21 @@
+--CREATE TABLE tb_feature_store_cliente AS 
+
 WITH tb_transacoes AS (
     SELECT  
         IdTransacao,
         IdCliente,
         QtdePontos,
         DATETIME(SUBSTR(DtCriacao, 1, 19)) AS dtCriacao,
-        JULIANDAY('NOW') - JULIANDAY(SUBSTR(DtCriacao, 1, 10)) AS diffDate,
+        JULIANDAY('{date}') - JULIANDAY(SUBSTR(DtCriacao, 1, 10)) AS dif{date}
         CAST(STRFTIME('%H', SUBSTR(dtCriacao, 1, 19)) AS INTEGER) AS dtHora
     FROM transacoes 
+    WHERE DtCriacao <'{date}'
 ),
 tb_cliente AS (
 SELECT
     idCliente,
     DATETIME(SUBSTR(DtCriacao, 1, 19)) AS dtCriacao,
-    JULIANDAY('NOW') - JULIANDAY(SUBSTR(DtCriacao, 1, 10)) AS idadeBase
+    JULIANDAY('{date}') - JULIANDAY(SUBSTR(DtCriacao, 1, 10)) AS idadeBase
 FROM clientes
 ),
 tb_sumario_transacoes AS (
@@ -123,7 +126,7 @@ SELECT
     t6.DescNomeProduto AS produto14,
     t7.DescNomeProduto AS produto7,
     COALESCE(t8.dtDia, -1) AS dtDia,
-    COALESCE(t9.periodo, 'Sem informação') AS periodo
+    COALESCE(t9.periodo, 'Sem informação') AS periodoMaisTransacao28
 
 FROM tb_sumario_transacoes AS t1 
 
@@ -158,4 +161,12 @@ LEFT JOIN tb_cliente_perido_rn AS t9
 ON t1.idCliente = t9.idCliente
 AND t9.rnPeriodo = 1
 )
-SELECT * FROM tb_join 
+
+INSERT INTO tb_feature_store_cliente
+
+SELECT 
+    '{date}' AS dtRef,
+    *,
+    1.* qtdeTransacoes28 / qtdeTransacoesVida AS engajamento28Vida
+FROM tb_join
+
