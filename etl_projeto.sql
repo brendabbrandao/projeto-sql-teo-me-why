@@ -1,4 +1,4 @@
---CREATE TABLE tb_feature_store_cliente AS 
+CREATE TABLE tb_feature_store_cliente AS 
 
 WITH tb_transacoes AS (
     SELECT  
