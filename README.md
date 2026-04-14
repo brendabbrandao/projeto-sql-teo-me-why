@@ -14,4 +14,4 @@ Ao longo do curso, tive a oportunidade de revisar e consolidar conceitos fundame
 
 Além disso, também revisitei conceitos básicos importantes para fortalecer minha base em SQL
 
-Como parte do projeto, também desenvolvi um script em Python para executar a query.
+Como parte do projeto, também desenvolvi um script em Python para executar a query. 
