@@ -1,3 +1,4 @@
+#importação de bibliotecas
 import pandas as pd
 import sqlalchemy
 

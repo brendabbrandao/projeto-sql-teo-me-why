@@ -1,3 +1,4 @@
+-- Criação da tabela de feature store do cliente
 CREATE TABLE tb_feature_store_cliente AS 
 
 WITH tb_transacoes AS (
